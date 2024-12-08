@@ -13,21 +13,21 @@ app.secret_key = 'malek key'  # Required for session management
 more_details_button = False
 
 # Load the pre-trained KNN model for supervised
-knn = joblib.load('knn_supervised_model_.pkl')
+knn = joblib.load('models/knn_supervised_model_.pkl')
 # Load the vectorizer
-vectorizer = joblib.load('supervise_vectorizer_.pkl')
+vectorizer = joblib.load('models/supervise_vectorizer_.pkl')
 
 # Load the pre-trained KNN model  for unsupervised
-knn_similar =joblib.load('knn_unsupervised_model_.pkl')
+knn_similar =joblib.load('models/knn_unsupervised_model_.pkl')
   
-preprocessor_similar =joblib.load('unsupervised_preprossesor_.pkl')
+preprocessor_similar =joblib.load('models/unsupervised_preprossesor_.pkl')
 
 #scaler = joblib.load('scaler_diet.pkl')
-kmeans = joblib.load('kmeans_diet.pkl')
+kmeans = joblib.load('models/kmeans_diet.pkl')
 
 
 # Load the dataset
-data = pd.read_csv('cleaned_recipes_.csv')
+data = pd.read_csv('data/cleaned_recipes_.csv')
 
 
 def fetch_image(recipe_name , ingredients):
