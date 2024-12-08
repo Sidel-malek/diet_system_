@@ -141,6 +141,13 @@ def next_recipe():
 
 #############################################################################################
 
+def calculate_macronutrients(daily_calories):
+    protein = (daily_calories * 0.15) / 4
+    fat = (daily_calories * 0.25) / 9
+    carbs = (daily_calories * 0.60) / 4
+    return protein, fat, carbs
+
+
 #Fonction pour calculer les besoins caloriques journaliers (formule de Mifflin-St Jeor)
 def calculate_daily_calories(weight, height, age, sex, goal_weight):
     if sex == 'male':
@@ -211,14 +218,17 @@ def dietObjectif():
 
         # Distribution des calories par repas
         breakfast_calories, lunch_calories, dinner_calories = distribute_calories(daily_calories)
-    
+        breakfast_macros = calculate_macronutrients(breakfast_calories)
+        lunch_macros = calculate_macronutrients(lunch_calories)
+        dinner_macros = calculate_macronutrients(dinner_calories)
+
         # Initialisation des listes de recettes
         breakfast_recipes = []
         lunch_recipes = []
         dinner_recipes = []
 
         # Recommandations par repas
-        for meal, calories, recipes in zip(['Breakfast', 'Lunch', 'Dinner'], [breakfast_calories, lunch_calories, dinner_calories], [breakfast_recipes, lunch_recipes, dinner_recipes]):
+        for meal, calories, recipes , contentmacros in zip(['Breakfast', 'Lunch', 'Dinner'], [breakfast_calories, lunch_calories, dinner_calories], [breakfast_recipes, lunch_recipes, dinner_recipes],[breakfast_macros,lunch_macros,dinner_macros ]):
             print(f"{meal.capitalize()}")
             print("-" * 80)
         
@@ -227,7 +237,7 @@ def dietObjectif():
             else:
                 meal_ = 'Breakfast'
             
-            query = np.array([[calories, fat_grams, protein_grams, carb_grams]])
+            query = np.array([[calories] + list(contentmacros)])
             cluster = kmeans.predict(query)[0]
             data['Cluster'] = kmeans.predict(data[['Calories', 'FatContent', 'ProteinContent', 'CarbohydrateContent']])
             
@@ -252,8 +262,20 @@ def dietObjectif():
 
         # Rendu de la page avec toutes les recettes
         return render_template(
-            'diet.html',
-            daily_calories=daily_calories,
+            "diet.html",
+            daily_calories=round(daily_calories, 2),
+            protein_grams=round(protein_grams, 2),
+            fat_grams=round(fat_grams, 2),
+            carb_grams=round(carb_grams, 2),
+            formatted_macronutrients=f"""
+                Besoins journaliers en macronutriments :
+                - Protéines : {round(protein_grams, 2)} g
+                - Graisses : {round(fat_grams, 2)} g
+                - Glucides : {round(carb_grams, 2)} g
+            """,
+            breakfast_macros=breakfast_macros,
+            lunch_macros=lunch_macros,
+            dinner_macros=dinner_macros,
             breakfast_calories=breakfast_calories,
             lunch_calories=lunch_calories,
             dinner_calories=dinner_calories,
