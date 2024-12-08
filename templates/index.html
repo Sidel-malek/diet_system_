@@ -1,103 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta Tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recipe Health Prediction</title>
-    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap">
 </head>
 <body>
-
-    <h1>Select a Recipe</h1>
-    <div class="cards-container">
-      {% for recipe in recipes %}
-      <div class="card">
-        <img src="{{ recipe.ImageURL }}" alt="{{ recipe.Name }}">
-        <h3>{{ recipe.Name }}</h3>
-        <p>Calories: {{ recipe.Calories }}</p>
-        <form action="{{ url_for('recommend', recipe_id=recipe.RecipeId) }}">
-          <button type="submit">Select</button>
-        </form>
-      </div>
-      {% endfor %}
-    </div>
-
-    <br>
-    <br>
-    <hr>
-    
-    <h1>Recipe Health Prediction</h1>
-    <br>
-    <!-- Form for entering ingredients -->
-    <form action="/predict" method="post">
-        <label for="ingredients">Enter Ingredients:</label><br>
-        <textarea id="ingredients" name="ingredients" rows="4" cols="50" required></textarea><br><br>
-        <button type="submit">Predict</button>
-    </form>
-    
-    <!-- Display prediction text if available -->
-    {% if prediction_text %}
-        <h2>{{ prediction_text }}</h2>
-    {% endif %}
-
-    <!-- Recipe details if available -->
-    {% if recipe_details %}
-        <h3>Example Recipe with Your Ingredients:</h3>
-        <ul>
-            <li><strong>Name:</strong> {{ recipe_details['Name'] }}</li>
-            <li><strong>Cook Time:</strong> {{ recipe_details['CookTime'] }}</li>
-            
-            <!-- Display image only if the image URL is available -->
-            <li><strong>Images:</strong> <img src="{{ recipe_details['Images'] }}" alt="Recipe Image" style="max-width:200px;"></li>
-            <li><strong>Category:</strong> {{ recipe_details['RecipeCategory'] }}</li>
-            <li><strong>Ingredients:</strong> {{ recipe_details['RecipeIngredientParts'] }}</li>
-            <li><strong>Quantities:</strong> {{ recipe_details['RecipeIngredientQuantities'] }}</li>
-            <li><strong>Ratings:</strong> {{ recipe_details['AggregatedRating'] }}</li>
-            <li><strong>Servings:</strong> {{ recipe_details['RecipeServings'] }}</li>
-            <li><strong>Instructions:</strong> {{ recipe_details['RecipeInstructions'] }}</li>
-        </ul>
-        
-        <!-- Button to request another recipe -->
-        <form action="/next_recipe" method="post">
-            <button type="submit">Other Recipe</button>
-        </form>
-
-        <!-- Button to toggle the visibility of extended details -->
-        <br><br><br>
-        <button id="more-details-button" onclick="toggleDetails()">More Details</button>
-
-        <!-- Section with extended details, initially hidden -->
-        <div id="extended-details" style="display: none;">
-            {% if extended_details %}
-                <h3>Nutritional Details (Per Serving):</h3>
-                <ul>
-                    <li><strong>Calories:</strong> {{ extended_details['Calories'] }}</li>
-                    <li><strong>Fat:</strong> {{ extended_details['FatContent'] }}</li>
-                    <li><strong>Saturated Fat:</strong> {{ extended_details['SaturatedFatContent'] }}</li>
-                    <li><strong>Cholesterol:</strong> {{ extended_details['CholesterolContent'] }}</li>
-                    <li><strong>Sodium:</strong> {{ extended_details['SodiumContent'] }}</li>
-                    <li><strong>Carbohydrates:</strong> {{ extended_details['CarbohydrateContent'] }}</li>
-                    <li><strong>Fiber:</strong> {{ extended_details['FiberContent'] }}</li>
-                    <li><strong>Sugar:</strong> {{ extended_details['SugarContent'] }}</li>
-                    <li><strong>Protein:</strong> {{ extended_details['ProteinContent'] }}</li>
-                </ul>
-            {% endif %}
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">🍴 Foody</a>
         </div>
-    {% endif %}
+    </nav>
 
-    <!-- JavaScript to toggle the extended details visibility -->
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-content">
+            <h1>Enjoy <span class="highlight">Healthy Life</span> <br> Tasty Food</h1>
+            <p>There are people who can’t start their day without a healthy meal.</p>
+            <button class="cta-button" onclick="showRecipes()">Select Recipe</button>
+        </div>
+    </section>
+
+    <!-- Recipe Selection Section -->
+    <section id="recipes-section" style="display: none;">
+        <h2>Select a Recipe</h2>
+        <div class="cards-container">
+            {% for recipe in recipes %}
+            <div class="card">
+                <div class="card-content">
+                    <h3>{{ recipe.Name }}</h3>
+                    <p>Calories: {{ recipe.Calories }}</p>
+                    <form action="{{ url_for('recommend', recipe_id=recipe.RecipeId) }}">
+                        <button type="submit" class="card-button">View Recipe</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Recipe Health Prediction Section -->
+    <section class="health-prediction-section">
+        <h1 class="section-title">Recipe Health Prediction</h1>
+        <p class="section-description">Analyze the healthiness of a recipe by entering its ingredients below:</p>
+        <!-- Form for entering ingredients -->
+        <form action="/predict" method="post" class="prediction-form">
+            <label for="ingredients" class="form-label">Enter Ingredients:</label><br>
+            <textarea id="ingredients" name="ingredients" rows="4" cols="50" placeholder="e.g., chicken, rice, broccoli" required></textarea><br><br>
+            <button type="submit" class="cta-button">Predict</button>
+        </form>
+        
+        <!-- Display prediction text if available -->
+        {% if prediction_text %}
+        <div class="prediction-results">
+            <h2 class="
+                {% if 'Healthy' in prediction_text %}
+                    healthy
+                {% elif 'Unhealthy' in prediction_text %}
+                    unhealthy
+                {% else %}
+                    moderate
+                {% endif %}
+            ">
+                {{ prediction_text }}
+            </h2>
+        </div>
+        
+        
+        {% endif %}
+    
+        <!-- Recipe details if available -->
+        {% if recipe_details %}
+        <div class="recipe-details">
+            <h3 class="recipe-title">Example Recipe with Your Ingredients:</h3>
+            <ul class="recipe-info">
+                <li><strong>Name:</strong> {{ recipe_details['Name'] }}</li>
+                <li><strong>Cook Time:</strong> {{ recipe_details['CookTime'] }}</li>
+                <li><strong>Category:</strong> {{ recipe_details['RecipeCategory'] }}</li>
+                <li><strong>Ingredients:</strong> {{ recipe_details['RecipeIngredientParts'] }}</li>
+                <li><strong>Quantities:</strong> {{ recipe_details['RecipeIngredientQuantities'] }}</li>
+                <li><strong>Ratings:</strong> {{ recipe_details['AggregatedRating'] }}</li>
+                <li><strong>Servings:</strong> {{ recipe_details['RecipeServings'] }}</li>
+                <li>
+                    <strong>Instructions:</strong>
+                    <ol class="instructions-list">
+                        {% for instruction in recipe_details['RecipeInstructions'].strip('[]').split(',') %}
+                        <li>{{ instruction.strip() }}</li>
+                        {% endfor %}
+                    </ol>
+                </li>
+            </ul>
+        </div>
+        <form action="/next_recipe" method="post">
+            <button type="submit" class="cta-button">Other Recipe</button>
+        </form>
+        {% endif %}
+        
+    </section>
+
+    <!-- JavaScript -->
     <script>
+        // Function to toggle recipe selection
+        function showRecipes() {
+            document.getElementById('hero').style.display = 'none';
+            document.getElementById('recipes-section').style.display = 'block';
+        }
+
+        // Function to toggle extended recipe details
         function toggleDetails() {
             const detailsSection = document.getElementById('extended-details');
             const button = document.getElementById('more-details-button');
-            
-            // Toggle the visibility of the extended details
             if (detailsSection.style.display === 'none') {
                 detailsSection.style.display = 'block';
-                button.textContent = 'Hide Details'; // Change button text to 'Hide'
+                button.textContent = 'Hide Details';
             } else {
                 detailsSection.style.display = 'none';
-                button.textContent = 'More Details'; // Change button text back to 'More Details'
+                button.textContent = 'More Details';
             }
         }
     </script>
