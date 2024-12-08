@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommandation de régime</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Calcul de régime personnalisé</h1>
+        <form method="POST">
+            <label for="weight">Poids actuel (kg):</label>
+            <input type="number" id="weight" name="weight" required><br>
+
+            <label for="height">Taille (cm):</label>
+            <input type="number" id="height" name="height" required><br>
+
+            <label for="age">Âge (ans):</label>
+            <input type="number" id="age" name="age" required><br>
+
+            <label for="sex">Sexe:</label>
+            <select id="sex" name="sex" required>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+            </select><br>
+
+            <label for="goal_weight">Poids objectif (kg):</label>
+            <input type="number" id="goal_weight" name="goal_weight" required><br>
+
+            <button type="submit">Calculer</button>
+        </form>
+
+        {% if daily_calories %}
+        
+        <h2>Calories totales de la journée</h2>
+        <p><strong>{{ daily_calories }} kcal</strong></p>
+    
+        <h3>Recommandations de repas :</h3>
+        <h4>Petit-déjeuner (Calories : {{ breakfast_calories }} kcal)</h4>
+        <ul>
+            {% for recipe in breakfast %}
+            <li>{{ recipe.Name }} - {{ recipe.Calories }} kcal</li>
+            {% endfor %}
+        </ul>
+        
+        <h4>Déjeuner (Calories : {{ lunch_calories }} kcal)</h4>
+        <ul>
+            {% for recipe in lunch %}
+            <li>{{ recipe.Name }} - {{ recipe.Calories }} kcal</li>
+            {% endfor %}
+        </ul>
+        
+        <h4>Dîner (Calories : {{ dinner_calories }} kcal)</h4>
+        <ul>
+            {% for recipe in dinner %}
+            <li>{{ recipe.Name }} - {{ recipe.Calories }} kcal</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</body>
+</html>

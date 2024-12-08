@@ -3,6 +3,8 @@ import joblib
 import pandas as pd
 import requests
 from sklearn.preprocessing import StandardScaler
+import numpy as np
+from sklearn.neighbors import NearestNeighbors
 
 
 app = Flask(__name__)
@@ -20,10 +22,13 @@ knn_similar =joblib.load('knn_unsupervised_model_.pkl')
   
 preprocessor_similar =joblib.load('unsupervised_preprossesor_.pkl')
 
+#scaler = joblib.load('scaler_diet.pkl')
+kmeans = joblib.load('kmeans_diet.pkl')
+
+
 # Load the dataset
 data = pd.read_csv('cleaned_recipes_.csv')
 
-recipes_limited = data.sample(n=6)
 
 def fetch_image(recipe_name , ingredients):
     url = "https://cse.google.com/cse.js?cx=b604b290643ae4f55"
@@ -72,6 +77,8 @@ def fetch_image(recipe_name , ingredients):
 
 @app.route('/')
 def home():
+    global recipes_limited
+    recipes_limited = data.sample(n=6)
     return render_template("index.html", recipes=recipes_limited.to_dict("records"))
 
 
@@ -127,14 +134,138 @@ def predict():
 
 
 
-
-
 @app.route('/next_recipe', methods=['POST'])
 def next_recipe():
     prediction = session.get('prediction', 'Unknown')  # Retrieve stored prediction
     return get_recipe(prediction)
 
+#############################################################################################
 
+#Fonction pour calculer les besoins caloriques journaliers (formule de Mifflin-St Jeor)
+def calculate_daily_calories(weight, height, age, sex, goal_weight):
+    if sex == 'male':
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+    daily_calories = bmr + (goal_weight - weight) * 500 / abs(goal_weight - weight if goal_weight != weight else 1)
+    return daily_calories
+
+# Calculer les besoins en macronutriments
+def calculate_macronutrients(daily_calories):
+    protein_percentage = 0.15  # 15% des calories
+    fat_percentage = 0.25      # 25% des calories
+    carb_percentage = 0.60     # 60% des calories
+    
+    protein_grams = (daily_calories * protein_percentage) / 4
+    fat_grams = (daily_calories * fat_percentage) / 9
+    carb_grams = (daily_calories * carb_percentage) / 4
+    
+    return protein_grams, fat_grams, carb_grams
+
+# Répartition des calories entre les repas
+def distribute_calories(daily_calories):
+    breakfast_calories = daily_calories * 0.25
+    lunch_calories = daily_calories * 0.40
+    dinner_calories = daily_calories * 0.35
+    return breakfast_calories, lunch_calories, dinner_calories
+
+import pandas as pd
+
+def get_user_input():
+    """Demande les informations nécessaires à l'utilisateur."""
+    print("\nVeuillez fournir les informations suivantes :")
+    try:
+        weight = float(input("Votre poids actuel (kg) : "))
+        height = float(input("Votre taille (cm) : "))
+        age = int(input("Votre âge (ans) : "))
+        sex = input("Votre sexe (Homme/Femme) : ").strip().lower()
+        if sex not in ['homme', 'femme']:
+            raise ValueError("Sexe invalide. Veuillez entrer 'Homme' ou 'Femme'.")
+        goal_weight = float(input("Votre poids objectif (kg) : "))
+    except ValueError as e:
+        print(f"Erreur : {e}. Veuillez recommencer.")
+        return get_user_input()
+    
+    return weight, height, age, sex, goal_weight
+
+# Filtrer les recettes par type de repas
+def get_recipes_for_meal(meal_type, recipes):
+    return recipes[recipes['MealType'] == meal_type]
+
+
+@app.route('/diet', methods=['GET', 'POST'])
+def dietObjectif():
+    # Obtenir les informations utilisateur
+    if request.method == 'POST':
+        # Récupérer les informations utilisateur
+        weight = float(request.form['weight'])
+        height = float(request.form['height'])
+        age = int(request.form['age'])
+        sex = request.form['sex']
+        goal_weight = float(request.form['goal_weight'])
+
+        # Calcul des besoins caloriques et macronutriments
+        daily_calories = calculate_daily_calories(weight, height, age, sex, goal_weight)
+
+        protein_grams, fat_grams, carb_grams = calculate_macronutrients(daily_calories)
+
+        # Distribution des calories par repas
+        breakfast_calories, lunch_calories, dinner_calories = distribute_calories(daily_calories)
+    
+        # Initialisation des listes de recettes
+        breakfast_recipes = []
+        lunch_recipes = []
+        dinner_recipes = []
+
+        # Recommandations par repas
+        for meal, calories, recipes in zip(['Breakfast', 'Lunch', 'Dinner'], [breakfast_calories, lunch_calories, dinner_calories], [breakfast_recipes, lunch_recipes, dinner_recipes]):
+            print(f"{meal.capitalize()}")
+            print("-" * 80)
+        
+            if meal == 'Lunch' or meal == 'Dinner':
+                meal_ = 'Dinner_Lunch'
+            else:
+                meal_ = 'Breakfast'
+            
+            query = np.array([[calories, fat_grams, protein_grams, carb_grams]])
+            cluster = kmeans.predict(query)[0]
+            data['Cluster'] = kmeans.predict(data[['Calories', 'FatContent', 'ProteinContent', 'CarbohydrateContent']])
+            
+            meal_recipes = get_recipes_for_meal(meal_, data)
+
+            if meal_recipes.empty:
+                print(f"Aucune recette trouvée pour {meal}.\n")
+                continue
+
+            # Recommander des recettes pour le cluster et afficher les résultats
+            cluster_recipes = meal_recipes[meal_recipes['Cluster'] == cluster]
+
+            # Appliquer KNN pour trouver les recettes les plus proches
+            knn_diet = NearestNeighbors(n_neighbors=5)
+            knn_diet.fit(cluster_recipes[['Calories', 'FatContent', 'ProteinContent', 'CarbohydrateContent']].values)
+    
+            distances, indices = knn_diet.kneighbors(query)
+
+            # Extraire les recettes recommandées
+            recommended_recipes = cluster_recipes.iloc[indices[0]]
+            recipes.extend(recommended_recipes.to_dict(orient='records'))
+
+        # Rendu de la page avec toutes les recettes
+        return render_template(
+            'diet.html',
+            daily_calories=daily_calories,
+            breakfast_calories=breakfast_calories,
+            lunch_calories=lunch_calories,
+            dinner_calories=dinner_calories,
+            breakfast=breakfast_recipes,
+            lunch=lunch_recipes,
+            dinner=dinner_recipes
+        )
+    
+    return render_template('diet.html')
+
+
+##########################################################################################
 def get_recipe(prediction):
     if 'remaining_recipes' not in session:
         return render_template(
@@ -201,6 +332,10 @@ def find_similar_recipes(recipe_id, data, knn_model, preprocessor, n_neighbors=1
     similar_recipes['Distance'] = distances[0]
     
     return similar_recipes
+
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
