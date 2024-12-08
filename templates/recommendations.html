@@ -5,50 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recommendations</title>
   <link rel="stylesheet" href="/static/recommendation.css" type="text/css">
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <h1>Similar Recipes</h1>
+  <div class="hero-section">
+    <h1>Recommended Recipes</h1>
+    <p>Discover recipes similar to your selection!</p>
+  </div>
+
   <div class="container">
-    <div class="recipe">
-      <h3>Selected Recipe: {{ selected_recipe.Name }}</h3>
-      <p><strong>Calories:</strong> {{ selected_recipe.Calories }}</p>
-      <p><strong>Protein:</strong> {{ selected_recipe.ProteinContent }}</p>
-      <p><strong>Fat:</strong> {{ selected_recipe.FatContent }}</p>
-      <p><strong>Carbohydrates:</strong> {{ selected_recipe.CarbohydrateContent }}</p>
+    <div class="selected-recipe">
+      <h2>Selected Recipe</h2>
+      <div class="selected-recipe-card">
+        <h3>{{ selected_recipe.Name }}</h3>
+        <p><i class="far fa-clock"></i> Cook Time: {{ selected_recipe.CookTime }}</p>
+        <p><strong>Calories:</strong> {{ selected_recipe.Calories }}</p>
+        <p><strong>Protein:</strong> {{ selected_recipe.ProteinContent }}</p>
+        <p><strong>Fat:</strong> {{ selected_recipe.FatContent }}</p>
+        <p><strong>Carbohydrates:</strong> {{ selected_recipe.CarbohydrateContent }}</p>
+      </div>
     </div>
-    <h2>Recommended Recipes</h2>
+
     <div class="recipes-list">
       {% for recipe in recommendations %}
-      <div class="recipe">
-        <!-- Handle missing image URL -->
-        <img src="{{ recipe.Images if recipe.Images else '/path/to/default/image.jpg' }}" alt="{{ recipe.Name }}">
-        <h3>{{ recipe.Name }}</h3>
-        <p><strong>Cook Time:</strong> {{ recipe['CookTime'] }}</p>
-        <p><strong>Category:</strong> {{ recipe['RecipeCategory'] }}</p>
-        
-        <p><strong>Ingredients:</strong> 
-          {% if recipe['RecipeIngredientParts'] %}
-            <ul>
-              {% for ingredient in recipe['RecipeIngredientParts'].split(',') %}
+      <div class="recipe-card">
+        <div class="recipe-details">
+          <h3>{{ recipe.Name }}</h3>
+          <p><i class="far fa-clock"></i> {{ recipe['CookTime'] }}</p>
+          
+          <p class="stars">
+            {% for i in range(1, 6) %}
+              {% if i <= recipe['AggregatedRating']|int %}
+                <i class="fas fa-star"></i>
+              {% else %}
+                <i class="far fa-star"></i>
+              {% endif %}
+            {% endfor %}
+          </p>
+          <div class="ingredients-container">
+            <p class="category"><strong>Category:</strong> {{ recipe['RecipeCategory'] }}</p>
+            <div>
+              <p class="ingredients-title"><strong>Ingredients:</strong></p>
+              {% if recipe['RecipeIngredientParts'] %}
+              <ul class="ingredients">
+                {% for ingredient in recipe['RecipeIngredientParts'].split(',') %}
                 <li>{{ ingredient.strip() }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            No ingredients available.
-          {% endif %}
-        </p>
-
-        <p><strong>Quantities:</strong> {{ recipe['RecipeIngredientQuantities'] }}</p>
-        <p><strong>Ratings:</strong> {{ recipe['AggregatedRating'] }}</p>
-        <p><strong>Servings:</strong> {{ recipe['RecipeServings'] }}</p>
-        <p><strong>Instructions:</strong> {{ recipe['RecipeInstructions'] }}</p>
-        <p><strong>Calories:</strong> {{ recipe.Calories }}</p>
-        <p><strong>Protein:</strong> {{ recipe.ProteinContent }}</p>
-        <p><strong>Fat:</strong> {{ recipe.FatContent }}</p>
-        <p><strong>Carbohydrates:</strong> {{ recipe.CarbohydrateContent }}</p>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p>No ingredients available.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
       </div>
       {% endfor %}
     </div>
+
     <a class="back-btn" href="{{ url_for('home') }}">Back to Recipes</a>
   </div>
 </body>
