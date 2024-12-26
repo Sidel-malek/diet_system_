@@ -5,6 +5,8 @@ import requests
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from sklearn.feature_extraction.text import CountVectorizer
+
 
 
 app = Flask(__name__)
@@ -12,10 +14,14 @@ app.secret_key = 'malek key'  # Required for session management
 
 more_details_button = False
 
+vectorizer = CountVectorizer(tokenizer=lambda x: x.split(", "), lowercase=True)
+
+
 # Load the pre-trained KNN model for supervised
-knn = joblib.load('models/knn_supervised_model_.pkl')
+model_nn = joblib.load('models/nn_supervised_model_.pkl')
+model_rf = joblib.load('models/rf_supervised_model_.pkl')
 # Load the vectorizer
-vectorizer = joblib.load('models/supervise_vectorizer_.pkl')
+#vectorizer = joblib.load('models/supervise_vectorizer_.pkl')
 
 # Load the pre-trained KNN model  for unsupervised
 knn_similar =joblib.load('models/knn_unsupervised_model_.pkl')
@@ -28,6 +34,9 @@ kmeans = joblib.load('models/kmeans_diet.pkl')
 
 # Load the dataset
 data = pd.read_csv('data/cleaned_recipes_.csv')
+data_health = data[data['HealthStatus']=='Healthy']
+
+vectorizer.fit_transform(data['RecipeIngredientParts'])
 
 
 def fetch_image(recipe_name , ingredients):
@@ -78,7 +87,7 @@ def fetch_image(recipe_name , ingredients):
 @app.route('/')
 def home():
     global recipes_limited
-    recipes_limited = data.sample(n=6)
+    recipes_limited = data_health.sample(n=6)
     return render_template("index.html", recipes=recipes_limited.to_dict("records"))
 
 
@@ -120,10 +129,10 @@ def recommend(recipe_id):
 def predict():
     ingredients = request.form['ingredients']
     user_vector = vectorizer.transform([ingredients])
-    prediction = knn.predict(user_vector)[0]
-
+    prediction = model_rf.predict(user_vector)[0]
+    
     # Get the most similar recipe indices
-    _, indices = knn.kneighbors(user_vector)
+    _, indices = model_nn.kneighbors(user_vector)
     
     top_5_indices = [int(index) for index in indices[0][:6]]  # Convert to Python int
     session['remaining_recipes'] = top_5_indices  # Save indices in session
@@ -294,6 +303,7 @@ def get_recipe(prediction):
             'index.html',
             prediction_text=f'No recipes available.'
         )
+    
 
     # Get the first recipe index from the session
     recipe_index = session['remaining_recipes'].pop(0)  # Remove the first element
